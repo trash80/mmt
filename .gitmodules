@@ -1,0 +1,12 @@
+[submodule "lib/TFT_ILI9340"]
+	path = lib/TFT_ILI9340
+	url = https://github.com/sumotoy/TFT_ILI9340.git
+[submodule "lib/Adafruit_MCP23017"]
+	path = lib/Adafruit_MCP23017
+	url = https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library.git
+[submodule "lib/SdFat"]
+	path = lib/SdFat
+	url = https://github.com/greiman/SdFat.git
+[submodule "lib/Adafruit_GFX"]
+	path = lib/Adafruit_GFX
+	url = https://github.com/adafruit/Adafruit-GFX-Library.git
