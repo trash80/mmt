@@ -1,5 +1,5 @@
 /*
- * Chain Controller class File
+ * MMT - A music tracker for Cortex-M4 / Teensy 3.1 & TFT ILI9341
  * Copyright (C) 2014 Timothy Lamb - trash80.com
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -16,37 +16,40 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef chain_h
-#define chain_h
+#include "globals.h"
+#include "player.h"
+#include "joypad.h"
+#include "display.h"
+#include "route.h"
 
-#include "Arduino.h"
+volatile struct Memory memory;
 
-class ChainClass {
-  public:
-    ChainClass();
-    void begin();
-    void init();
-    void action(uint8_t);
-    void update();
-    void setView(uint8_t,uint8_t);
-  private:
-    bool selectionMode;
-    uint8_t view_offset;
-    uint8_t * cell;
-    uint8_t view_chain;
-    uint8_t view_track;
+void setup()
+{
+  Serial.begin(9600);
+  Serial1.begin(31250);
+  Serial2.begin(31250);
+  Serial3.begin(31250);
+  Joypad.begin();
 
-    void actionCue(uint8_t);
-    void actionSelect(uint8_t);
-    void actionCopy(uint8_t);
-    void actionPaste(uint8_t);
-    void actionCreate(uint8_t);
-    void actionEdit(uint8_t);
-    void actionDelete(uint8_t);
-    void actionMove(uint8_t);
-    void setData();
-    void setCell();
-};
+  pinMode(3,OUTPUT);
+  digitalWrite(3, LOW);
 
-extern ChainClass Chain;
-#endif
+  Display.begin();
+  digitalWrite(3, HIGH);
+  Player.begin();
+  Display.splash();
+  Route.begin();
+  Song.begin();
+  Chain.begin();
+  Pattern.begin();
+}
+
+void loop()
+{
+  if(Joypad.available()) {
+    Route.action(Joypad.read());
+  }
+  Route.update();
+  Display.draw();
+}

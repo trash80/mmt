@@ -16,31 +16,81 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include "joypad.h"
+#include "joypad.h"
+
+void inputCallback()
+{
+  Joypad.callback();
+}
 
 JoypadClass::JoypadClass() {
 }
 
-void JoypadClass::begin(uint8_t pinA,uint8_t pinB,uint8_t pinStart,uint8_t pinSelect,uint8_t pinRight,uint8_t pinDown, uint8_t pinUp, uint8_t pinLeft)
+void JoypadClass::begin()
 {
-  uint8_t *p =& pins[0]; 
-  (*p++) = pinA;
-  (*p++) = pinB;
-  (*p++) = pinStart;
-  (*p++) = pinSelect;
-  (*p++) = pinRight;
-  (*p++) = pinDown;
-  (*p++) = pinUp;
-  (*p)   = pinLeft;
 
-  for(uint8_t x=0;x!=8;x++) {
-    pinMode(pins[x],INPUT_PULLUP);
-  }
+  pinMode(6, INPUT);
 
-  read_waiting= false;
+  pinA      = 8;
+  pinB      = 9;
+  pinStart  = 10;
+  pinSelect = 11;
+  pinRight  = 12;
+  pinDown   = 13;
+  pinUp     = 14;
+  pinLeft   = 15;
+  
+  mcp.begin();
+  mcp.pinMode(0, INPUT);
+  mcp.pullUp(0, HIGH);
+  mcp.setupInterrupts(true,false,LOW);
+
+  mcp.pinMode(pinUp, INPUT);
+  mcp.pullUp(pinUp, HIGH);
+  mcp.pinMode(pinDown, INPUT);
+  mcp.pullUp(pinDown, HIGH);
+  mcp.pinMode(pinLeft, INPUT);
+  mcp.pullUp(pinLeft, HIGH);
+  mcp.pinMode(pinRight, INPUT);
+  mcp.pullUp(pinRight, HIGH);
+  mcp.pinMode(pinSelect, INPUT);
+  mcp.pullUp(pinSelect, HIGH);
+  mcp.pinMode(pinStart, INPUT);
+  mcp.pullUp(pinStart, HIGH);
+  mcp.pinMode(pinA, INPUT);
+  mcp.pullUp(pinA, HIGH);
+  mcp.pinMode(pinB, INPUT);
+  mcp.pullUp(pinB, HIGH);
+
+  bufferPosition = readPosition = 0;
+  callback();
+  bufferPosition--;
+
+  attachInterrupt(6,inputCallback,FALLING);
 
   delay(10); //Delay to ensure internal pull-ups are activated
   setRepeat(300,30);
+}
+
+void JoypadClass::callback()
+{
+  uint8_t c = (uint8_t) ((mcp.readGPIOAB()>>8)) & 0xFF;
+  if(wait_clear && c == 0xFF) {
+    wait_clear = false;
+  } else if (!wait_clear) {
+    bufferPosition += 1;
+    if (bufferPosition > 7) bufferPosition = 0;
+    buffer[bufferPosition] = 0xFF - c;
+  }
+
+  mcp.setupInterruptPin(pinA,CHANGE);
+  mcp.setupInterruptPin(pinB,CHANGE);
+  mcp.setupInterruptPin(pinStart,CHANGE);
+  mcp.setupInterruptPin(pinSelect,CHANGE);
+  mcp.setupInterruptPin(pinUp,CHANGE);
+  mcp.setupInterruptPin(pinDown,CHANGE);
+  mcp.setupInterruptPin(pinLeft,CHANGE);
+  mcp.setupInterruptPin(pinRight,CHANGE);
 }
 
 void JoypadClass::setRepeat(unsigned long delayTime, unsigned long repeatTime)
@@ -48,60 +98,44 @@ void JoypadClass::setRepeat(unsigned long delayTime, unsigned long repeatTime)
   if(delayTime) {
     keyDelay = delayTime;
     keyRepeat= repeatTime;
-    keyCheck = repeatTime * 2;
     repeatEnable = true;
   }
 }
 
-boolean JoypadClass::available()
+bool JoypadClass::available()
 {
-  if(read_waiting) return true;
-
-  uint8_t joy = 0;
-  unsigned long time =  millis();
-
-  for(uint8_t x=0;x!=8;x++) {
-    joy |= (!digitalRead(pins[x]))<<(x);
+  if (bufferPosition != readPosition) {
+    touchTimer = millis() + keyDelay;
+    is_repeat = false;
+    return true;
   }
-  
-  if(joy >= last_state) {
-    if(repeatEnable && last_state == joy) {
-      if(timer < time) {
-        timer = time + keyRepeat;
-        touchTimer = time - 1;
-        last_state = 0;
-        is_repeat  = true;
-      }
-    } else {
-      is_repeat = false;
-      touchTimer = time - 1;
-      timer = time + keyDelay;
-    }
-    
-    if(last_state != joy && (touchTimer < time)) {
-      touchTimer = time + keyCheck;
-      last_state = state = joy;
-      read_waiting= true;
-      return true;
-    }
+
+  if(repeatEnable && hasPad(buffer[readPosition]) && millis() > touchTimer) {
+    is_repeat = true;
+    touchTimer = millis() + keyRepeat;
+    return true;
   }
-  
-  last_state = state = joy;
   return false;
 }
 
 uint8_t JoypadClass::read()
 {
-  uint8_t result = state;
+  if(readPosition != bufferPosition) {
+    readPosition+=1;
+    if(readPosition > 7) readPosition = 0;
+  }
   setPad();
-  state = 0;
-  read_waiting = false;
-  return result;
+  return buffer[readPosition];
+}
+
+void JoypadClass::waitClear()
+{
+  wait_clear = true;
 }
 
 boolean JoypadClass::hasPad(uint8_t value)
 {
-  return (value & 0xF0) != 0;
+  return (value > 8);
 }
 boolean JoypadClass::hasUp(uint8_t value)
 {
@@ -179,17 +213,17 @@ boolean JoypadClass::isSelect(uint8_t value)
 
 void JoypadClass::setPad()
 {
-  if(hasLeft(state)) {
+  if(hasLeft(buffer[readPosition])) {
     pad[0] = -1;
-  } else if (hasRight(state)) {
+  } else if (hasRight(buffer[readPosition])) {
     pad[0] = 1;
   } else {
     pad[0] = 0;
   }
-  
-  if(hasUp(state)) {
+
+  if(hasUp(buffer[readPosition])) {
     pad[1] = -1;
-  } else if (hasDown(state)) {
+  } else if (hasDown(buffer[readPosition])) {
     pad[1] = 1;
   } else {
     pad[1] = 0;

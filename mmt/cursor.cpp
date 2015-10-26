@@ -27,7 +27,7 @@ void CursorClass::begin() {
 
 }
 
-void CursorClass::draw() {
+void CursorClass::drawBg() {
 
   mask * m = &masks[0];
   mask * ml = &masks[1];
@@ -37,6 +37,7 @@ void CursorClass::draw() {
       Display.setRedrawRegion(ml->x,ml->y,ml->width,ml->height);
       ml->active = false;
     }
+
     ml->x = m->x;
     ml->y = m->y;
     ml->color = 0;
@@ -46,7 +47,13 @@ void CursorClass::draw() {
     Display.fillArea(m->x,m->y,m->width,m->height,m->color);
     Display.setRedrawRegion(m->x,m->y,m->width,m->height);
     m->active = false;
+    
   }
+}
+
+void CursorClass::drawFg() {
+  mask * m = &masks[0];
+  Display.fillRect(((m->x+m->width)*8), ((m->y)*12)-1, 1, ( m->height*12),  m->color);
 }
 
 void CursorClass::set(uint8_t new_col, uint8_t new_row)
@@ -85,7 +92,7 @@ void CursorClass::set(uint8_t new_col, uint8_t new_row)
     m->y = real_row;
     m->width = size;
     m->height = 1;
-    m->color = rgb(255,0,210);
+    m->color = Display.getPalletColor(10,1);
     m->active = true;
   }
 }
@@ -121,8 +128,10 @@ void CursorClass::startSelection()
 {
   drawSelection(0);
   selection_start_pos = abs_pos;
-  selection_start_col = (real_col);
-  selection_start_row = (real_row);
+  selection_start_col = real_col;
+  selection_start_row = real_row;
+  selection_start_rel_col = col;
+  selection_start_rel_row = row;
   selection_start_size = size;
 
   selection_end_pos   = abs_pos;
@@ -132,8 +141,28 @@ void CursorClass::startSelection()
   drawSelection(1);
 }
 
+
+void CursorClass::moveSelection(int8_t sc, int8_t sr)
+{
+  if(selection_active == false) return ;
+
+  uint16_t new_pos = Display.getDataPosition(selection_start_rel_col + sc,selection_start_rel_row + sr);
+  if (new_pos == 0 || (((int16_t)selection_start_rel_col) + sc) < 0 ) return ;
+
+  drawSelection(0);
+  selection_start_col += sc;
+  selection_start_rel_col += sc;
+  selection_start_row += sr;
+  selection_start_rel_row += sr;
+
+  selection_start_pos = (selection_start_row*40)+selection_start_col;
+  drawSelection(1);
+}
+
 void CursorClass::endSelection()
 {
+  if(selection_active == false) return ;
+
   drawSelection(0);
   selection_end_pos   = abs_pos;
   selection_end_col   = real_col + size;

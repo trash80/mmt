@@ -16,13 +16,32 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include "display.h"
+#include "display.h"
 #include "cursor.h"
+#include "route.h"
+#include "player.h"
 #include "font.c"
 #include "screens.c"
 
+
+uint32_t FreeRam(){ // for Teensy 3.0
+    uint32_t stackTop;
+    uint32_t heapTop;
+
+    // current position of the stack.
+    stackTop = (uint32_t) &stackTop;
+
+    // current position of heap.
+    void* hTop = malloc(1);
+    heapTop = (uint32_t) hTop;
+    free(hTop);
+
+    // The difference is the free, available ram.
+    return stackTop - heapTop;
+}
+
 DisplayClass::DisplayClass() : TFT_ILI9340(_cs, _dc, _rst) {
-  
+
 }
 
 void DisplayClass::enable() {
@@ -32,11 +51,11 @@ void DisplayClass::enable() {
 void DisplayClass::disable() {
   _enable = false;
 }
-    
+
 void DisplayClass::begin() {
   TFT_ILI9340::begin();
   TFT_ILI9340::setBitrate(24000000);
-  
+
   setRotation(1);
   fillScreen(rgb(0,0,0));
   writeBuffer= true;
@@ -45,53 +64,65 @@ void DisplayClass::begin() {
 
 
 void DisplayClass::splash() {
-  
+
   setTextSize(4);
-  print("n o n > t r > c k");
+  print("M M T");
   fillScreen(rgb(0,0,0));
-  print("n o n > t r > c k");
+  print("M M T");
   delay(10);
   fillScreen(rgb(0,0,255));
   fillScreen(rgb(255,0,0));
-  print("n o n > t r > c k");
+  print("M M T");
   delay(10);
   fillScreen(rgb(255,0,0));
   fillScreen(rgb(0,0,255));
-  print("n o n > t r > c k");
+  print("M M T");
   delay(10);
   fillScreen(rgb(255,0,0));
   fillScreen(rgb(0,255,0));
   fillScreen(rgb(0,0,255));
-  print("n o n > t r > c k");
+  print("M M T");
   delay(10);
   fillScreen(rgb(0,0,0));
   setCursorAtPixel(5,100);
   setTextColor(rgb(255,255,255));
-  print("n o n > t r > c k");
+  print("M M T");
   delay(500);
   setCursorAtPixel(5,130);
   setTextSize(2);
   setTextColor(rgb(100,100,100));
-  print("by trash80");
+  print("BY TRASH80");
   setCursorAtPixel(5,150);
-  print("v.0.0.1");
+  print("V.0.0.1");
+  setCursorAtPixel(80,150);
+  print("MEM USED: ");
+  print(sizeof(Memory));
   delay(1000);
+  fillScreen(rgb(0,0,0));
 }
 
 void DisplayClass::draw() {
-  if(!_enable || time > millis()) return ;
+  if(!_enable || time > millis()) {
+    if(position != Player.position) {
+      position = Player.position;
+      drawSprites();
+    }
+    return ;
+  }
 
   time = millis() + 33;
   frame++;
 
 
-  Cursor.draw(); 
+  Cursor.drawBg();
   enableBuffer = true;
   writeBuffer  = true;
   setCursorAtPixel(0,0);
   cPrint(screen,color);
   enableBuffer = false;
   drawSprites();
+  Route.draw();
+  Cursor.drawFg();
 }
 
 void DisplayClass::setView(uint8_t sc) {
@@ -99,11 +130,11 @@ void DisplayClass::setView(uint8_t sc) {
   scene = sc;
   memcpy(screen, screens[sc], 801);
   memcpy(color, colors[colorMap[sc]], 801);
-  
+
   Cursor.clearSelection();
   setTextSize(2);
   setCursorAtPixel(0,0);
-  
+
 }
 
 void DisplayClass::setRedrawRegion(uint8_t col, uint8_t row, uint8_t width, uint8_t height)
@@ -124,14 +155,14 @@ void DisplayClass::setRedrawRegion(uint8_t col, uint8_t row, uint8_t width, uint
 void DisplayClass::redrawWindow(uint8_t col, uint8_t row, uint8_t width, uint8_t height)
 {
   uint16_t pos;
-  
+
   for(uint8_t h=row;h<(row+height);h++) {
     pos = (col)+(h*40);
     char *c =& color[pos];
     char *s =& screen[pos];
-    
+
     setPosition(col,h);
-    
+
     for(uint8_t w=col;w<(col+width);w++) {
       const unsigned int *p =& pallet[((*c++) - 48)][0];
       textcolor   = *p++;
@@ -175,14 +206,21 @@ void DisplayClass::setData(uint8_t * data, uint16_t size, uint8_t col, uint8_t r
         if(!*(s+3)) *(s+3) = (*sc+3);
         break;
       case 110: // "n" - NOTE
-        printNote(s,*data);
+        if(!((*data) & 0x80)) {
+          printNote(s,*data);
+        } else {
+          //clear
+          *s = 126;
+          *(s+1) = 126;
+          *(s+2) = 126;
+        }
         break;
     }
     data++;
     last_pos = pos;
     pos = getNextDataPosition(pos);
   }
-  
+
   enableBuffer = true;
   redrawWindow(0,0,40,20);
   enableBuffer = false;
@@ -219,16 +257,20 @@ void DisplayClass::setSprite(uint8_t sprint_index, const char chr, uint8_t col, 
   (*sp).active = true;
 }
 
+void DisplayClass::clearSprite(uint8_t s)
+{
+  if(s >= 16) return;
+  struct sprite * sp =& sprites[s];
+  (*sp).active = false;
+}
+
 void DisplayClass::clearSprites()
 {
   struct sprite * sp =& sprites[0];
-  
+
   for(uint8_t x=0;x!=16;x++) {
-    redrawWindow((*sp).pos_x_last,(*sp).pos_y_last, 1, 1);
-    redrawWindow((*sp).pos_x,(*sp).pos_y, 1, 1);
-    (*sp).pos_x_last = (*sp).pos_x = 0xFF;
-    (*sp).pos_y_last = (*sp).pos_y = 0xFF;
     (*sp).active = false;
+    sp++;
   }
 }
 
@@ -246,8 +288,8 @@ void DisplayClass::drawSprites()
           (*sp).lifetime--;
       }
 
-      if ((*sp).pos_x_last != 0xFF && (*sp).pos_y_last != 0xFF 
-        && (*sp).pos_x_last != (*sp).pos_x && (*sp).pos_y_last != (*sp).pos_y) {
+      if ((*sp).pos_x_last != 0xFF && (*sp).pos_y_last != 0xFF
+        && ((*sp).pos_x_last != (*sp).pos_x || (*sp).pos_y_last != (*sp).pos_y)) {
         redrawWindow((*sp).pos_x_last,(*sp).pos_y_last, 1, 1);
       }
       setTextColor((*sp).color, (*sp).color);
@@ -268,7 +310,7 @@ void DisplayClass::drawSprites()
     sp++;
   }
   writeBuffer = true;
-  
+
 }
 
 void DisplayClass::setPosition(uint8_t col, uint8_t row)
@@ -283,7 +325,7 @@ uint16_t DisplayClass::getDataPosition(uint8_t find_col, uint8_t find_row)
   uint16_t pos = 0;
 
   const char * sc =& screens[scene][0];
-  
+
   //Find the row
   while((*sc) && (r != find_row)) {
     if((*sc) == 123) { // 123 == "{"
@@ -333,7 +375,7 @@ uint16_t DisplayClass::getNextDataPosition(uint16_t pos)
 {
 
   const char * sc =& screens[scene][pos + 1];
-  
+
   //Find the column
   while((*sc)) {
     if((*sc) == 125) { // hit a }
@@ -366,28 +408,61 @@ void DisplayClass::printHex(char * buffer, uint8_t value)
   uint8_t nibble = value>>4;
 
   if(!nibble) {
-    *(buffer++) = 48; // ascii chr 0 
+    *(buffer++) = 48; // ascii chr 0
   } else {
     if(nibble > 0x09) {
       *(buffer++) = 65+(nibble - 10); // ascii chr A
     } else {
-      *(buffer++) = 48+nibble; // ascii chr 0 
+      *(buffer++) = 48+nibble; // ascii chr 0
     }
   }
   nibble = value&0x0F;
   if(nibble > 0x09) {
     *(buffer) = 65+(nibble-10);
   } else {
-    *(buffer++) = 48+nibble; // ascii chr 0 
+    *(buffer++) = 48+nibble; // ascii chr 0
   }
+}
+
+void DisplayClass::printInt(char * buffer, uint16_t value)
+{
+/*  uint8_t higher = value>>8;
+
+  if(!nibble) {
+    *(buffer++) = 48; // ascii chr 0
+  } else {
+    if(nibble > 0x09) {
+      *(buffer++) = 65+(nibble - 10); // ascii chr A
+    } else {
+      *(buffer++) = 48+nibble; // ascii chr 0
+    }
+  }
+  nibble = value&0x0F;
+  if(nibble > 0x09) {
+    *(buffer) = 65+(nibble-10);
+  } else {
+    *(buffer++) = 48+nibble; // ascii chr 0
+  }*/
 }
 
 void DisplayClass::printNote(char * buffer, uint8_t note)
 {
-  const char * name = &noteNames[(note%12)*2];
-  *buffer = *name;
-  *(buffer+1) = *(name+1);
-  *(buffer+2) = (note/12)+48;
+  if(note & 0x80) {
+    *buffer   = 45;
+    *(buffer+1) = 45;
+    *(buffer+2) = 45;
+  } else {
+    const char * name = &noteNames[(note%12)*2];
+    *buffer = *name;
+    *(buffer+1) = *(name+1);
+    note = (note/12);
+    if(note > 9) {
+      note += 65;
+    } else {
+      note += 48;
+    }
+    *(buffer+2) = note; 
+  }
 }
 
 
@@ -400,7 +475,7 @@ void DisplayClass::printBuffer(uint8_t col, uint8_t row, uint8_t col_size, const
   uint8_t col_count = 0;
   char *s =& screen[pos];
   char *c =& color[pos];
-  
+
   setPosition(col,row);
   while((*str)) {
     if(col_size && col_count == col_size) {
@@ -412,7 +487,7 @@ void DisplayClass::printBuffer(uint8_t col, uint8_t row, uint8_t col_size, const
         c =& color[pos];
     }
     col_count++;
-    
+
     const unsigned int *p =& pallet[((*c++) - 48)][0];
     textcolor   = *p++;
     textbgcolor = *p;
@@ -471,8 +546,8 @@ void DisplayClass::drawChar(int16_t x, int16_t y, unsigned char c,
   if(c > 90) c = 126;
   //Special dashes "~"
   if(c == 126) color = pallet[12][0];
-  
-  
+
+
   if(!enableBuffer || buffer_char[pos] != c || buffer_color[pos] != color) {
     if(writeBuffer) {
       buffer_char[pos] = c;
@@ -490,7 +565,7 @@ void DisplayClass::drawChar(int16_t x, int16_t y, unsigned char c,
               drawPixel((x+3)-j, y+i, color);
             else {  // big size
               fillRect((x+(3*size))-(j*size), y+(i*size), size, size, color);
-            } 
+            }
           } else if (bg != color) {
             if (size == 1) // default size
               drawPixel((x+3)-j, y+i, bg);

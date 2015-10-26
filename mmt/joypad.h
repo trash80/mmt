@@ -18,7 +18,8 @@
 
 #ifndef joypad_h
 #define joypad_h
-
+#include <Wire.h>
+#include "Adafruit_MCP23017.h"
 #include "Arduino.h"
 
 #define J_A 0x01
@@ -34,7 +35,7 @@ class JoypadClass {
   public:
     int8_t pad[2];
     JoypadClass();
-    void begin(uint8_t,uint8_t,uint8_t,uint8_t,uint8_t,uint8_t,uint8_t,uint8_t);
+    void begin();
     boolean available();
     uint8_t read();
     void setRepeat(unsigned long, unsigned long);
@@ -57,17 +58,31 @@ class JoypadClass {
     boolean hasDown(uint8_t);
     boolean hasUp(uint8_t);
     boolean hasLeft(uint8_t);
+    void callback();
+    void waitClear();
   private:
-    uint8_t pins[8];
-    uint8_t last_state;
-    uint8_t state;
+
+    Adafruit_MCP23017 mcp;
+    
+    uint8_t buffer[8];
+    uint8_t bufferPosition;
+    uint8_t readPosition;
+    int pinStart;
+    int pinSelect;
+    int pinUp;
+    int pinDown;
+    int pinLeft;
+    int pinRight;
+    int pinA;
+    int pinB;
+    bool wait_clear;
+
     boolean is_repeat;
-    boolean read_waiting;
     unsigned long keyDelay;
     unsigned long keyRepeat = 50;
     unsigned long keyCheck = 100;
     unsigned long timer;
-    unsigned long touchTimer; 
+    unsigned long touchTimer;
     boolean repeatEnable;
     void setPad();
 };

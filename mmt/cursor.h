@@ -25,7 +25,9 @@ class CursorClass {
   public:
     CursorClass();
     void begin();
-    void draw();
+    void drawBg();
+    void drawFg();
+    void draw() { drawBg();drawFg(); };
     void clearSelection();
     void drawSelection(bool);
     void set(uint8_t, uint8_t);
@@ -33,26 +35,30 @@ class CursorClass {
     void clear();
     void startSelection();
     void endSelection();
+    void moveSelection(int8_t sc, int8_t sr);
 
     uint8_t col;
     uint8_t row;
     uint8_t size;
     uint16_t pos;
     uint16_t abs_pos;
+    
+    uint16_t selection_start_pos;
+    uint8_t selection_start_col;
+    uint8_t selection_start_row;
+    uint8_t selection_start_rel_col;
+    uint8_t selection_start_rel_row;
+    uint8_t selection_start_size;
+
+    uint16_t selection_end_pos;
+    uint8_t selection_end_col;
+    uint8_t selection_end_row;
   private:
 
     uint8_t real_col;
     uint8_t real_row;
     bool changed;
 
-    uint16_t selection_start_pos;
-    uint8_t selection_start_col;
-    uint8_t selection_start_row;
-    uint8_t selection_start_size;
-
-    uint16_t selection_end_pos;
-    uint8_t selection_end_col;
-    uint8_t selection_end_row;
     
     bool selection_active;
     bool selection_changed;

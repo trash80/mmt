@@ -19,6 +19,12 @@
 #ifndef route_h
 #define route_h
 
+#include "display.h"
+#include "player.h"
+#include "joypad.h"
+#include "views/song.h"
+#include "views/chain.h"
+#include "views/pattern.h"
 #include "Arduino.h"
 
 #define SONG_VIEW 0
@@ -39,9 +45,9 @@ static const unsigned char routeMap[15] PROGMEM = {
 };
 
 static const char routeMapChr[16] PROGMEM = 
-  "PPPCC"
+  "P~~C~"
   "SCPIT"
-  "GGGGG"
+  "G~~~~"
 ;
 
 class RouteClass {
@@ -50,6 +56,7 @@ class RouteClass {
     void begin();
     void action(uint8_t);
     void update();
+    void draw();
   	void setView(uint8_t);
   private:
   	void actionView(uint8_t);

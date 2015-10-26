@@ -19,7 +19,13 @@
 #ifndef song_h
 #define song_h
 
-#include "Arduino.h"
+#include "../globals.h"
+#include "../display.h"
+#include "../cursor.h"
+#include "../joypad.h"
+#include "../player.h"
+#include "../route.h"
+#include "chain.h"
 
 class SongClass {
   public:
@@ -28,9 +34,15 @@ class SongClass {
     void init();
     void action(uint8_t);
     void update();
+    void draw();
+    uint8_t track() {
+        return view_track;
+    }
   private:
+    uint8_t view_track;
+    uint8_t view_row;
     uint8_t view_offset;
-    uint8_t * cell;
+    volatile uint8_t * cell;
     
     bool selection_active;
     uint16_t selection_start;
