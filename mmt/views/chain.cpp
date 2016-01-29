@@ -124,6 +124,7 @@ void ChainClass::actionSelect(uint8_t input)
 {
   
   Cursor.startSelection();
+  selection_start = Cursor.pos;
   selection_active = true;
   
 }
@@ -137,29 +138,36 @@ void ChainClass::actionCopy(uint8_t input)
   selection_end = Cursor.pos < selection_start ? selection_start : Cursor.pos;
   selection_start = Cursor.pos < selection_start ? Cursor.pos : selection_start;
   
-  selection_start_col = (selection_start%2);
+  selection_start_col = (selection_start%8);
   selection_start_row = (selection_start/40);
-  selection_end_col = (selection_end%2);
+  selection_end_col = (selection_end%8);
   selection_end_row = (selection_end/40);
   if(selection_start_col > selection_end_col) {
     selection_start_col = selection_end_col;
-    selection_end_col = (selection_start%2);
+    selection_end_col = (selection_start%8);
   }
 
   volatile uint8_t * cp = &memory.copy_buffer[0];
   volatile uint8_t * sp = &memory.chain[view_chain][selection_start_row][selection_start_col];
 
+  uint8_t mem_count = 0;
   for(uint16_t y=selection_start_row;y<=selection_end_row;y++) {
     for(uint8_t x=selection_start_col;x<=selection_end_col;x++) {
+      if(mem_count >= 256) break;
       *cp++ = *sp++;
+      mem_count++;
     }
-    if(y != 0x0F) sp+=(1-(selection_end_col-selection_start_col));
+    if(y != 16) sp+=(1-(selection_end_col-selection_start_col));
   }
 
   /* Move & clip cursor */
   Cursor.clearSelection();
   Cursor.col = selection_start_col;
-  Cursor.row = (((uint16_t)selection_end_row)+1)&0x0F;
+  Cursor.row = (((uint16_t)selection_end_row) +1)&255;
+  if(Cursor.row > 0x0F) {
+    Cursor.row = 0x0F;
+    setData();
+  }
   Cursor.set(Cursor.col,Cursor.row);
   setCell();
   selection_active = false;
@@ -170,13 +178,13 @@ void ChainClass::actionPaste(uint8_t input)
   /* @TODO Cleanup / refactor */
   uint8_t selection_start_col,selection_end_col,selection_start_row,selection_end_row;
 
-  selection_start_col = (selection_start%2);
+  selection_start_col = (selection_start%8);
   selection_start_row = (selection_start/40);
-  selection_end_col = (selection_end%2);
+  selection_end_col = (selection_end%8);
   selection_end_row = (selection_end/40);
   if(selection_start_col > selection_end_col) {
     selection_start_col = selection_end_col;
-    selection_end_col = (selection_start%2);
+    selection_end_col = (selection_start%8);
   }
 
   volatile uint8_t * cp = &memory.copy_buffer[0];
@@ -196,8 +204,15 @@ void ChainClass::actionPaste(uint8_t input)
   }
 
   /* Move & clip cursor */
-  Cursor.row += y;
-  if(Cursor.row > 0x0F) Cursor.row = 0x0F;
+  uint16_t row = (Cursor.row+y);
+  if(row > 0x0F) {
+    row = 0x0F;
+  } else {
+    row = (Cursor.row+y);
+  }
+  if(row > 0xFF) row = 0xFF;
+
+  Cursor.row = row;
   setData();
   Cursor.set(Cursor.col,Cursor.row);
   setCell();

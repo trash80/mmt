@@ -56,8 +56,10 @@ void RouteClass::draw()
       Pattern.draw();
       break;
   }
-  
-  Display.setData(&Player.tempo, 1, 26, 0);
+  char t[4];
+  sprintf(t,"%u",Player.tempo);
+  Display.printBuffer(34,1,t);
+  //Display.printNote(&Display.screen[],*data);
 }
 
 void RouteClass::action(uint8_t input)

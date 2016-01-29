@@ -1,5 +1,5 @@
 /*
- * MMT - A music tracker for Cortex-M4 / Teensy 3.1 & TFT ILI9341
+ * Effects class File
  * Copyright (C) 2014 Timothy Lamb - trash80.com
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -16,43 +16,21 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "globals.h"
-#include "player.h"
-#include "joypad.h"
-#include "display.h"
-#include "route.h"
+#ifndef effects_h
+#define effects_h
 
-volatile struct Memory memory;
+#include "Arduino.h"
 
-void setup()
-{
-  pinMode(3,OUTPUT);
-  digitalWrite(3, LOW);
+class EffectClass {
+  public:
+    EffectClass();
+    void begin();
+  private:
+    //static unsigned char name[18][3];
+};
 
-  Serial.begin(9600);
-  Serial1.begin(31250);
-  Serial2.begin(31250);
-  Serial3.begin(31250);
 
-  Display.begin();
+extern EffectClass Effect;
 
-  digitalWrite(3, HIGH);
 
-  Display.splash();
-  
-  Joypad.begin();
-  Player.begin();
-  Route.begin();
-  Song.begin();
-  Chain.begin();
-  Pattern.begin();
-}
-
-void loop()
-{
-  if(Joypad.available()) {
-    Route.action(Joypad.read());
-  }
-  Route.update();
-  Display.draw();
-}
+#endif

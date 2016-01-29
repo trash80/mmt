@@ -21,7 +21,7 @@
  
 // Standard ASCII 5x7 font
 
-static const unsigned char font[] = {
+static const unsigned char trackerfont[] = {
        0b00000000,
        0b00000000,
        0b00000000,

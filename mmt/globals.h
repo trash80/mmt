@@ -60,11 +60,11 @@
 #define CHAIN_PATTERN 0
 #define CHAIN_TRANSPOSE 1
 
-#define EFFECT_TABLE        5
 #define EFFECT_ARPEGGIATO   1
 #define EFFECT_CHORD        2
 #define EFFECT_DELAY        3
 #define EFFECT_ENVELOPE     4
+#define EFFECT_TABLE        5
 #define EFFECT_VOLUME       EFFECT_ENVELOPE
 #define EFFECT_FRAME        5
 #define EFFECT_GROOVE       6

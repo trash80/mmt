@@ -40,7 +40,7 @@ uint32_t FreeRam(){ // for Teensy 3.0
     return stackTop - heapTop;
 }
 
-DisplayClass::DisplayClass() : TFT_ILI9340(_cs, _dc, _rst) {
+DisplayClass::DisplayClass() : ILI9341_t3(_cs, _dc, _rst) {
 
 }
 
@@ -53,8 +53,8 @@ void DisplayClass::disable() {
 }
 
 void DisplayClass::begin() {
-  TFT_ILI9340::begin();
-  TFT_ILI9340::setBitrate(24000000);
+  ILI9341_t3::begin();
+  //ILI9341_t3::setBitrate(24000000);
 
   setRotation(1);
   fillScreen(rgb(0,0,0));
@@ -558,7 +558,7 @@ void DisplayClass::drawChar(int16_t x, int16_t y, unsigned char c,
       fillRect(x, y, 4*size, 5*size, bg);
     } else {
       for (int8_t i=0; i!=5; i++ ) {
-        char line = *(font+((c-32)*5)+i);
+        char line = *(trackerfont+((c-32)*5)+i);
         for (int8_t j = 0; j!=3; j++) {
           if (line & 0x1) {
             if (size == 1) // default size

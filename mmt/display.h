@@ -19,11 +19,10 @@
 #ifndef display_h
 #define display_h
 
-#include "globals.h"
 #include "Arduino.h"
 #include "SPI.h"
-#include "Adafruit_GFX.h"
-#include "TFT_ILI9340.h"
+#include "globals.h"
+#include "ILI9341_t3.h"
 
 #if defined(__SAM3X8E__)
     #undef __FlashStringHelper::F(string_literal)
@@ -38,7 +37,7 @@
 #define rgb(r, g, b) (unsigned int) ((r / 8) << 11) | ((g / 4) << 5) | (b / 8)
 #endif
 
-class DisplayClass : public TFT_ILI9340 {
+class DisplayClass : public ILI9341_t3 {
   public:
     DisplayClass();
     void begin();
